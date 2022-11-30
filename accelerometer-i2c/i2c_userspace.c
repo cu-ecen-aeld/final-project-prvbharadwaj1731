@@ -461,6 +461,7 @@ void main()
         printf("g_x x-axis = %lf\n", g_x);
 
         accel_x_change = fabs(g_x - prev_accel_x);
+        printf("Acceleration change = %lf\n", accel_x_change);
 
         // printf("x-axis acceleration change = %lf\n\n", accel_x_change);
 
@@ -469,7 +470,7 @@ void main()
         prev_accel_x = g_x;
 
 
-
+        printf("Before check for accel threshold\n");
         if(accel_x_change >= crash_threshold_acceleration){
             // *write_ptr = (char)g_x; //last recorded acceleration
             // bytes_written = write(logfile, write_ptr, sizeof(g_x));
