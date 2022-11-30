@@ -20,6 +20,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 
 #include <linux/i2c-dev.h>
 #include "i2c_utils.h"
+#include "gps_unified.h"
 
 #define MPU6050_PATH ("/dev/i2c-2")
 #define LOGFILE_PATH ("/var/tmp/accel_data")
@@ -88,6 +89,10 @@ void main()
     //pointer to write data into file
     char *write_ptr;
 
+    gps_init();
+
+    loc_t data;
+
     //Open accelerometer file
     int device_file, logfile, common_retval; 
     device_file = open(MPU6050_PATH, O_RDWR);
@@ -149,14 +154,21 @@ void main()
 
         prev_accel_x = g_x;
 
+
+
         if(accel_x_change >= crash_threshold_acceleration){
-            *write_ptr = (char)g_x; //last recorded acceleration
-            bytes_written = write(logfile, write_ptr, sizeof(g_x));
-            if(bytes_written == -1){
-                printf("Error occured writing acceleration values to logfile.\n");
-                exit(-1);
-            }
+            // *write_ptr = (char)g_x; //last recorded acceleration
+            // bytes_written = write(logfile, write_ptr, sizeof(g_x));
+            // if(bytes_written == -1){
+            //     printf("Error occured writing acceleration values to logfile.\n");
+            //     exit(-1);
+            // }
             printf("Crash acceleration logged.\n");
+            
+            gps_location(&data);
+
+            printf("%lf %lf\n", data.latitude, data.longitude);
+
         }
 
         // printf("Normalized accceleration values in 3-axes given below:\n");
