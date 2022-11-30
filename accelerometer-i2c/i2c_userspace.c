@@ -395,7 +395,7 @@ void main()
     double prev_accel_x = x_axis_baseline_accel_g;
 
     //Normalized acceleration values
-    float g_x, g_y, g_z;
+    double g_x, g_y, g_z;
 
     //roll and pitch angles
     float roll, pitch;
