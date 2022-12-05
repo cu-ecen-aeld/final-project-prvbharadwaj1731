@@ -17,13 +17,20 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <unistd.h>
+
+#include <inttypes.h>
+#include <string.h>
+#include <math.h>
 
 #include <linux/i2c-dev.h>
 #include "i2c_utils.h"
+#include <termios.h>
+
 #include "gps_unified.h"
+#include "ThingSpeakLinux.h"
 
 #define MPU6050_PATH ("/dev/i2c-2")
-#define LOGFILE_PATH ("/var/tmp/accel_data")
 
 
 //Sensor and register addresses
@@ -41,6 +48,8 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #define ACCEL_ZOUT_L    0x40
 
 #define WHOMAI          0x75 //useful for debugging
+
+#define WRITEAPI_KEY    ("YH5AHTDY3OVH069F")
 
 
 //Globals
@@ -62,32 +71,6 @@ Z-axis sensitivity factor = 1947
 
 Divide all values by 16384 (Max positive int16_t number) for normalized values
 */
-
-//Signal handler for crash detection and handling
-void signal_handler(int sig)
-{
-    if(sig == SIGUSR1){
-        printf("*****CAUTION*****\n");
-        printf("Crash detected. Please take further action.\n");
-    }
-}
-
-
-
-
-#include "gps_unified.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <string.h>
-#include <math.h>
-
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-
-
-
 
 int uart0_filestream = -1;
 
@@ -400,8 +383,8 @@ void main()
     //roll and pitch angles
     float roll, pitch;
 
-    //pointer to write data into file
-    char *write_ptr;
+    //Array holding data to be sent to ThingSpeak
+    float DataArray[3];
 
     gps_init();
 
@@ -417,15 +400,6 @@ void main()
     }
 
     printf("Device file open.\n");
-
-    //Open logfile
-    logfile = open(LOGFILE_PATH, O_CREAT | O_RDWR | O_TRUNC, 0777);
-    if(logfile == -1){
-        printf("Error occured while opening logfile = %s. Exiting...\n", strerror(errno));
-        exit(-1);
-    }
-
-    printf("Logfile open.\n");
 
     //use ioctl to access physical device
     common_retval = ioctl(device_file, I2C_SLAVE, MPU6050_ADDR);
@@ -482,6 +456,12 @@ void main()
             gps_location(&data);
             printf("%lf %lf\n", data.latitude, data.longitude);
 
+            DataArray[0] = (float)accel_x_change;
+            DataArray[1] = (float)data.latitude;
+            DataArray[2] = (float)data.longitude;
+
+            //Sending data to ThingSpeak 
+            SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));
         }
 
         // printf("Normalized accceleration values in 3-axes given below:\n");
