@@ -7,7 +7,7 @@
 #include <inttypes.h>
 
 #ifndef PORTNAME
-#define PORTNAME "/dev/ttyAMA0"
+#define PORTNAME "/dev/ttyO4"
 #endif
 
 void serial_init(void);
