@@ -440,7 +440,7 @@ void main()
 
 #ifdef VERBOSE_LOGGING
         printf("Acceleration change = %lf\n", accel_x_change);
-#ifdef VERBOSE_LOGGING
+#endif
 
         prev_accel_x = g_x;
 
