@@ -454,7 +454,7 @@ void main()
             DataArray[2] = (float)data.longitude;
 
             //Sending data to ThingSpeak 
-            SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));
+            //SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));
         }
 
         sleep(1); //Read values every second
