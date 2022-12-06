@@ -1,20 +1,18 @@
-#ifndef _GPS_UNIFIED_H_
-#define _GPS_UNIFIED_H_
-
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
 #ifndef PORTNAME
-#define PORTNAME "/dev/ttyO4"
+#define PORTNAME "/dev/hw_serial-48022000"
 #endif
 
-void serial_init(void);
-void serial_config(void);
-void serial_println(const char *, int);
-void serial_readln(char *, int);
-void serial_close(void);
+/* Output format:
+$GPRMC,235316.000,A,4003.9040,N,10512.5792,W,0.09,144.75,141112,,*19
+$GPGGA,235317.000,4003.9039,N,10512.5793,W,1,08,1.6,1577.9,M,-20.7,M,,0000*5F
+$GPGSA,A,3,22,18,21,06,03,09,24,15,,,,,2.5,1.6,1.9*3E
+*/
+
 #define _EMPTY 0x00
 #define NMEA_GPRMC 0x01
 #define NMEA_GPRMC_STR "$GPRMC"
@@ -22,7 +20,6 @@ void serial_close(void);
 #define NMEA_GPGGA_STR "$GPGGA"
 #define NMEA_UNKNOWN 0x00
 #define _COMPLETED 0x03
-
 #define NMEA_CHECKSUM_ERR 0x80
 #define NMEA_MESSAGE_ERR 0xC0
 
@@ -54,11 +51,6 @@ struct gprmc {
 };
 typedef struct gprmc gprmc_t;
 
-uint8_t nmea_get_message_type(const char *);
-uint8_t nmea_valid_checksum(const char *);
-void nmea_parse_gpgga(char *, gpgga_t *);
-void nmea_parse_gprmc(char *, gprmc_t *);
-
 struct location {
     double latitude;
     double longitude;
@@ -68,23 +60,24 @@ struct location {
 };
 typedef struct location loc_t;
 
+void serial_init(void);
+void serial_config(void);
+// void serial_println(const char *, int);
+void serial_readln(char *, int);
+void serial_close(void);
+
+uint8_t nmea_get_message_type(const char *);
+uint8_t nmea_valid_checksum(const char *);
+void nmea_parse_gpgga(char *, gpgga_t *);
+void nmea_parse_gprmc(char *, gprmc_t *);
+
 // Initialize device
-extern void gps_init(void);
-// Activate device
-extern void gps_on(void);
+void gps_init(void);
 // Get the actual location
-extern void gps_location(loc_t *);
-
-
-// Turn off device (low-power consumption)
-extern void gps_off(void);
-
-// -------------------------------------------------------------------------
-// Internal functions
-// -------------------------------------------------------------------------
-
+void gps_location(loc_t *);
+// Turn off device
+void gps_off(void);
 // convert deg to decimal deg latitude, (N/S), longitude, (W/E)
 void gps_convert_deg_to_dec(double *, char, double *, char);
 double gps_deg_dec(double);
 
-#endif

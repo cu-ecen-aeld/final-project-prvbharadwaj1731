@@ -25,6 +25,9 @@
 #ifndef I2C_UTILS_H
 #define I2C_UTILS_H
 
+//#define VERBOSE_LOGGING
+
+
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 #include <stddef.h>
