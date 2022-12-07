@@ -56,7 +56,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 
 #define WHOMAI          0x75 //useful for debugging
 
-#define WRITEAPI_KEY    ("YH5AHTDY3OVH069F")
+char *WRITEAPI_KEY = "YH5AHTDY3OVH069F";
 
 
 #define URL_THINGSPEAK             "api.thingspeak.com"
@@ -558,7 +558,8 @@ void main()
             //     SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));    
             // }  
 
-            SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
+            char return_code = SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
+            printf("Return code from RESTful write = %s.\n", return_code);
         }
 
         sleep(0.5); //Read values every half second
