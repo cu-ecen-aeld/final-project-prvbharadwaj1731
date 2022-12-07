@@ -57,7 +57,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 
 #define WHOMAI          0x75 //useful for debugging
 
-char *WRITEAPI_KEY = "YH5AHTDY3OVH069F";
+char *WRITEAPI_KEY = "HXMBUP4KNFE28SYZ";
 
 
 #define URL_THINGSPEAK             "api.thingspeak.com"
