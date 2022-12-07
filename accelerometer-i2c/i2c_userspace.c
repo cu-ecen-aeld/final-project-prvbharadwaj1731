@@ -1,8 +1,17 @@
 /*
-Author: Pranav Bharadwaj
-Date: 11/12/2022
-Description: User-space application attempting to communicate with MPU 6050 accelerometer over I2C-2 bus present on the 
-Beaglebone Black. The address and bus location of the sensor is fixed.
+    Author: Ganesh K M, Pranav Bharadwaj, Tejaswini Lakshminarayan
+
+    Date: 11/12/2022
+
+    Description: User-space application attempting to communicate with MPU 6050 accelerometer over I2C-2 bus present on the 
+    Beaglebone Black. The address and bus location of the sensor is fixed. Also, provides crash detection based on instant change 
+    in acceleration. Once this exceeds a given threshold, it triggers GPS location read and data transfer to a cloud server, and finish execution.
+
+    Hosts functions handling GPS location read, acceleration read, crash detection and data transfer to cloud service
+
+    References and citations:
+        1. Pedro Bertoli's ThingSpeak repository: https://github.com/phfbertoleti/ThingSpeakC
+        2. References to i2c-utils macros and headers: https://github.com/cu-ecen-aeld/final-project-bala9248/wiki/Balapranesh's-Final-Project-Video
 */
 
 #include <stdio.h>
@@ -21,7 +30,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #include <syslog.h>
 #include <errno.h>
 
-//for thingspeak
+//for ThingSpeak
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -32,10 +41,11 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #include <math.h>
 
 #include <linux/i2c-dev.h>
-#include "i2c_utils.h"
 #include <termios.h>
 
+//User written headers
 #include "gps_unified.h"
+#include "i2c_utils.h"
 #include "ThingSpeakLinux.h"
 
 #define MPU6050_PATH ("/dev/i2c-2")
@@ -57,6 +67,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 
 #define WHOMAI          0x75 //useful for debugging
 
+//ThingSpeak WRITE_API key
 char *WRITEAPI_KEY = "HXMBUP4KNFE28SYZ";
 
 
@@ -71,22 +82,6 @@ double x_axis_baseline_accel_g = -0.335; //global holding reference x-axis accel
 double crash_threshold_acceleration = 0.350; //Acceleration threshold for crash 
 
 
-/*
-Accelerometer specs:
-
-z-axis of accelerometer is aligned with gravitional force direction. Monitorting x and y axes for sudden change in acceleration values would be sufficient to detect crash.
-To normalize raw-values obtained from the accelerometer based on the sensor's sensitivity, calibration values are provided with the reference sheet.
-
-MPU6050 Product Specification: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf
-
-X-axis sensitivity factor = 2050
-Y-axis sensitivity factor = 77
-Z-axis sensitivity factor = 1947
-
-Divide all values by 16384 (Max positive int16_t number) for normalized values
-*/
-
-
 /*ThingSpeak Code*/
 
 //Function: Send some data to a ThingSpeak's channel
@@ -94,7 +89,7 @@ Divide all values by 16384 (Max positive int16_t number) for normalized values
 //             - Array of integer values (all data that must be sent)
 //             - ThingSpeaks's channel Key
 //             - Size of ThingSpeak's channel key
-//Return:      - 
+//Return:      - Status code (held as enum)
 char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey)
 {
 	int sockfd, n;
@@ -113,12 +108,16 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
 	}
 
 	if (FieldNo >= 1){
-		printf("argument1 is %f\r\n", FieldArray[0]);
-		printf("argument2 is %f\r\n", FieldArray[1]);
-		printf("argument3 is %f\r\n", FieldArray[2]);
+#ifdef VERBOSE_LOGGING
+		printf("argument1 (acceleration change) is %f\r\n", FieldArray[0]);
+		printf("argument2 (GPS latitude) is %f\r\n", FieldArray[1]);
+		printf("argument3 (GPS longtitude) is %f\r\n", FieldArray[2]);
+#endif
 	}
 
+#ifdef VERBOSE_LOGGING
     printf("setting up HTTP req\r\n");	
+#endif
 	
 	//Setting up HTTP Req. string:
 	bzero(&ReqString,sizeof(ReqString));
@@ -137,43 +136,47 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	//opening a socket
 	if (sockfd < 0){
+#ifdef VERBOSE_LOGGING
 		printf("OPEN_SOCKET_ERROR is %d\r\n", OPEN_SOCKET_ERROR);
+#endif
 		return OPEN_SOCKET_ERROR;
 	}
-
-    printf("opening socket\r\n");
 		
     bzero((char *) &serv_addr, sizeof(serv_addr));
-    printf("bzero successful\r\n");
     serv_addr.sin_family = AF_INET;
 	// Thingspeak IP : 184.106.153.149  statically assigned
 	serv_addr.sin_addr.s_addr = inet_addr("184.106.153.149");
-    printf("IP address assigned successfully\r\n");
     serv_addr.sin_port = htons(80);
-    printf("port assigned successfully\r\n");
     
 	//Step 4: connecting to ThingSpeak server (via HTTP port / port no. 80)
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
+#ifdef VERBOSE_LOGGING
 		printf("THINGSPEAK_CONNECTION_ERROR is %d", THINGSPEAK_CONNECTION_ERROR);
+#endif
 		return THINGSPEAK_CONNECTION_ERROR;
 	}
-	
-    printf("Connected to ThingSpeak successfully\r\n");
 
 	//sending data to ThingSpeak's channel
     write(sockfd,ReqString,strlen(ReqString));
 
+#ifdef VERBOSE_LOGGING
     printf("Write to ThingSpeak channel successful\r\n");
+#endif
 		
 	//close TCP connection
     //close(sockfd);    
 	
 	//Complete
+#ifdef VERBOSE_LOGGING
 	printf("SEND_OK is %d", SEND_OK);
+#endif
 	return SEND_OK;
 }
 
-
+/*
+    UART userspace functions handling initialization, configuration and read of GPS data from MTK3339 sensor
+    UART drivers hosted in buildroot repository, loaded into kernel when OS boots up
+*/
 
 
 
@@ -205,23 +208,6 @@ void serial_config(void)
 
     tcsetattr(uart0_filestream, TCSANOW, &config); //TCSANOW-change occurs immediately
 }
-
-// void serial_println(const char *line, int len)
-// {
-//     if (uart0_filestream != -1)
-//     {
-//         char *cpstr = (char *)malloc((len+1) * sizeof(char));
-//         strcpy(cpstr, line);
-//         cpstr[len-1] = '\r';
-//         cpstr[len] = '\n';
-
-//         int count = write(uart0_filestream, cpstr, len+1);
-//         if (count < 0) {
-//             //TODO: handle errors...
-//         }
-//         free(cpstr);
-//     }
-// }
 
 // Read a line from UART.
 // Return a 0 len string in case of problems with UART
@@ -472,7 +458,20 @@ double gps_deg_dec(double deg_point)
 }
 
 
+/*
+    Accelerometer specs:
 
+    z-axis of accelerometer is aligned with gravitional force direction. Monitorting x and y axes for sudden change in acceleration values would be sufficient to detect crash.
+    To normalize raw-values obtained from the accelerometer based on the sensor's sensitivity, calibration values are provided with the reference sheet.
+
+    MPU6050 Product Specification: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf
+
+    X-axis sensitivity factor = 2050
+    Y-axis sensitivity factor = 77
+    Z-axis sensitivity factor = 1947
+
+    Divide all values by 16384 (Max positive int16_t number) for normalized values
+*/
 
 
 void main()
@@ -520,9 +519,9 @@ void main()
 
     //Wake up MPU6050 by writing 0 to PWR_MGMT1 register
     int8_t power_ret = i2c_smbus_read_byte_data(device_file, PWR_MGMT1_ADDR);
-    i2c_smbus_write_byte_data(device_file, PWR_MGMT1_ADDR, ~(1 << 6)&power_ret);
+    i2c_smbus_write_byte_data(device_file, PWR_MGMT1_ADDR, ~(1 << 6)&power_ret); //bit shifting used to set 7-bit address
 
-    //In forever loop
+    //In forever loop till crash is detected
     while(crash_flag){
         //Read acceleration in X-axis
         accel_x = (i2c_smbus_read_byte_data(device_file, ACCEL_XOUT_H) << 8) | (i2c_smbus_read_byte_data(device_file, ACCEL_XOUT_L));
@@ -563,11 +562,6 @@ void main()
 
             
             //Sending data to ThingSpeak 
-            //set a counter here to send data to cloud 3 times
-            // for(int i=0;i<3;i++){
-            //     SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));    
-            // }  
-
             SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
             printf("Data sent successfully.\r\n");
             //printf("Return code from RESTful write = %s.\n", return_code);
