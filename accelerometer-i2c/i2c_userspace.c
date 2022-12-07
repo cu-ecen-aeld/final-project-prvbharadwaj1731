@@ -135,18 +135,22 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
 	//printf("%s",EndOfHTTPReq);
 	//Connecting to ThingSpeak and sending data:
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    printf("opening socket\r\n");
 	//opening a socket
 	if (sockfd < 0){
 		printf("OPEN_SOCKET_ERROR is %d\r\n", OPEN_SOCKET_ERROR);
 		return OPEN_SOCKET_ERROR;
 	}
+
+    printf("opening socket\r\n");
 		
     bzero((char *) &serv_addr, sizeof(serv_addr));
+    printf("bzero successful\r\n");
     serv_addr.sin_family = AF_INET;
 	// Thingspeak IP : 184.106.153.149  statically assigned
 	serv_addr.sin_addr.s_addr = inet_addr("184.106.153.149");
+    printf("IP address assigned successfully\r\n");
     serv_addr.sin_port = htons(80);
+    printf("port assigned successfully\r\n");
     
 	//Step 4: connecting to ThingSpeak server (via HTTP port / port no. 80)
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
