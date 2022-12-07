@@ -97,7 +97,7 @@ Divide all values by 16384 (Max positive int16_t number) for normalized values
 //Return:      - 
 int SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey)
 {
-	int cleasockfd, n;
+	int sockfd, n;
     struct sockaddr_in serv_addr;
     struct hostent *ServerTCP;
 	int ReqStringSize;
