@@ -1,7 +1,10 @@
 /*
+Author: Tejaswini Lakshminarayan and Pranav Bharadwaj
+Date: 12/2/2022
+Reference: https://github.com/phfbertoleti/ThingSpeakC
 Module: Header - Communication with ThingSpeak (on Linux) via TCP Socket
-Author:  Pedro Bertoleti
-Date:   05/2016
+Author: Pedro Bertoleti
+Date: 05/2016
 */
 
 //defines

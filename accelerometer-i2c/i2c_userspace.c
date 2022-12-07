@@ -481,7 +481,7 @@ void main()
     float DataArray[3];
 
     //flag to set upon crash
-    bool crash_flag = false; //default value is false
+    bool crash_flag = true; //default value is false
 
     gps_init();
 
@@ -543,7 +543,7 @@ void main()
             printf("Crash acceleration logged.\n");            
             
             //set crash flag
-            crash_flag = true;
+            crash_flag = false;
             
             gps_location(&data);
             printf("%lf \t%lf \t %lf\n",accel_x_change, data.latitude, data.longitude);
