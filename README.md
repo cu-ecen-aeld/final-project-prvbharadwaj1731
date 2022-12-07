@@ -6,3 +6,6 @@ Refer [Overview](https://github.com/cu-ecen-aeld/final-project-TejaswiniLakshmin
 
 ## Final Project Schedule
 Refer [Schedule](https://github.com/cu-ecen-aeld/final-project-TejaswiniLakshminarayan/wiki/Schedule)
+
+## My Demo Video and outline of the project
+Refer [Video link](https://github.com/cu-ecen-aeld/final-project-prvbharadwaj1731/wiki/Pranav-Bharadwaj's-Final-project-Video)
