@@ -157,9 +157,13 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
 		printf("THINGSPEAK_CONNECTION_ERROR is %d", THINGSPEAK_CONNECTION_ERROR);
 		return THINGSPEAK_CONNECTION_ERROR;
 	}
-		
+	
+    printf("Connected to ThingSpeak successfully\r\n");
+
 	//sending data to ThingSpeak's channel
     write(sockfd,ReqString,strlen(ReqString));
+
+    printf("Write to ThingSpeak channel successful\r\n");
 		
 	//close TCP connection
     close(sockfd);    
