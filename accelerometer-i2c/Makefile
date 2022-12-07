@@ -4,6 +4,6 @@ CFLAGS = -static
 all: build
 
 clean: 
-	rm -f *.o i2c_userspace *.elf *.map	
+	rm -f *.o main *.elf *.map	
 build:
-	$(CC) $(CFLAGS) -o aesd_test i2c_userspace.c -lm -Wall
+	$(CC) $(CFLAGS) -o aesd_test main.c -lm -Wall

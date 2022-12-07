@@ -169,7 +169,7 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
     //close(sockfd);    
 	
 	//Complete
-	printf("SEND_OK is %d", SEND_OK);
+	printf("SEND_OK is %d.\r\n", SEND_OK);
 	return SEND_OK;
 }
 
