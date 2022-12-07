@@ -15,4 +15,4 @@ Date: 05/2016
 #define SEND_OK                      4
 
 //global prototypes
-char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey);
+int SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey);

@@ -95,9 +95,9 @@ Divide all values by 16384 (Max positive int16_t number) for normalized values
 //             - ThingSpeaks's channel Key
 //             - Size of ThingSpeak's channel key
 //Return:      - 
-char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey)
+int SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey)
 {
-	int sockfd, n;
+	int cleasockfd, n;
     struct sockaddr_in serv_addr;
     struct hostent *ServerTCP;
 	int ReqStringSize;
@@ -568,7 +568,7 @@ void main()
             //     SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));    
             // }  
 
-            char return_code = SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
+            int return_code = SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
             printf("Return code from RESTful write = %s.\n", return_code);
         }
 
