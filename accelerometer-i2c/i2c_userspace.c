@@ -9,6 +9,7 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 
 #include <sys/ioctl.h>
