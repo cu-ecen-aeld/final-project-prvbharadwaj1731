@@ -117,7 +117,8 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
 		printf("argument2 is %f\r\n", FieldArray[1]);
 		printf("argument3 is %f\r\n", FieldArray[2]);
 	}
-		
+
+    printf("setting up HTTP req\r\n");	
 	
 	//Setting up HTTP Req. string:
 	bzero(&ReqString,sizeof(ReqString));
@@ -131,10 +132,10 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
 	}
 	
 	sprintf(ptReqString,"%s",EndOfHTTPReq);
-	printf("%s",EndOfHTTPReq);
+	//printf("%s",EndOfHTTPReq);
 	//Connecting to ThingSpeak and sending data:
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    
+    printf("opening socket\r\n");
 	//opening a socket
 	if (sockfd < 0){
 		printf("OPEN_SOCKET_ERROR is %d\r\n", OPEN_SOCKET_ERROR);
