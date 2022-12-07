@@ -20,6 +20,12 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #include <syslog.h>
 #include <errno.h>
 
+//for thingspeak
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h> 
+
 #include <inttypes.h>
 #include <string.h>
 #include <math.h>
@@ -53,6 +59,12 @@ Beaglebone Black. The address and bus location of the sensor is fixed.
 #define WRITEAPI_KEY    ("YH5AHTDY3OVH069F")
 
 
+#define URL_THINGSPEAK             "api.thingspeak.com"
+#define BEGIN_OF_HTTP_REQ          "GET /update?key="
+#define END_OF_HTTP_REQ            "\r\n\r\n"
+#define MAX_SIZE                   9999
+
+
 //Globals
 double x_axis_baseline_accel_g = -0.335; //global holding reference x-axis acceleration value in rest position
 double crash_threshold_acceleration = 0.350; //Acceleration threshold for crash 
@@ -72,6 +84,88 @@ Z-axis sensitivity factor = 1947
 
 Divide all values by 16384 (Max positive int16_t number) for normalized values
 */
+
+
+/*ThingSpeak Code*/
+
+//Function: Send some data to a ThingSpeak's channel
+//Parameters:  - Number of fields (data to be sent)
+//             - Array of integer values (all data that must be sent)
+//             - ThingSpeaks's channel Key
+//             - Size of ThingSpeak's channel key
+//Return:      - 
+char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeOfKey)
+{
+	int sockfd, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *ServerTCP;
+	int ReqStringSize;
+	int i;
+	char ReqString[MAX_SIZE];
+	char BeginOfHTTPReq[]=BEGIN_OF_HTTP_REQ;
+	char EndOfHTTPReq[]=END_OF_HTTP_REQ;
+	char *ptReqString;
+	
+	if (FieldNo <=0){
+		printf("PARAMS_ERROR is %d", PARAMS_ERROR);
+		return PARAMS_ERROR;
+	}
+
+	if (FieldNo >= 1){
+		printf("argument1 is %f\r\n", FieldArray[0]);
+		printf("argument2 is %f\r\n", FieldArray[1]);
+		printf("argument3 is %f\r\n", FieldArray[2]);
+	}
+		
+	
+	//Setting up HTTP Req. string:
+	bzero(&ReqString,sizeof(ReqString));
+	sprintf(ReqString,"%s%s",BeginOfHTTPReq,Key);
+	
+	ptReqString = &ReqString[0]+(int)strlen(ReqString);
+	for(i=1; i<= FieldNo; i++)
+	{
+		sprintf(ptReqString,"&field%d=%.2f",i,FieldArray[i-1]);
+		ptReqString = &ReqString[0]+(int)strlen(ReqString);
+	}
+	
+	sprintf(ptReqString,"%s",EndOfHTTPReq);
+	printf("%s",EndOfHTTPReq);
+	//Connecting to ThingSpeak and sending data:
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+	//opening a socket
+	if (sockfd < 0){
+		printf("OPEN_SOCKET_ERROR is %d\r\n", OPEN_SOCKET_ERROR);
+		return OPEN_SOCKET_ERROR;
+	}
+		
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+	// Thingspeak IP : 184.106.153.149  statically assigned
+	serv_addr.sin_addr.s_addr = inet_addr("184.106.153.149");
+    serv_addr.sin_port = htons(80);
+    
+	//Step 4: connecting to ThingSpeak server (via HTTP port / port no. 80)
+	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
+		printf("THINGSPEAK_CONNECTION_ERROR is %d", THINGSPEAK_CONNECTION_ERROR);
+		return THINGSPEAK_CONNECTION_ERROR;
+	}
+		
+	//sending data to ThingSpeak's channel
+    write(sockfd,ReqString,strlen(ReqString));
+		
+	//close TCP connection
+    close(sockfd);    
+	
+	//Complete
+	printf("SEND_OK is %d", SEND_OK);
+	return SEND_OK;
+}
+
+
+
+
 
 int uart0_filestream = -1;
 
@@ -382,11 +476,11 @@ void main()
     //Normalized acceleration values
     double g_x, g_y, g_z;
 
-    //roll and pitch angles
-    float roll, pitch;
-
     //Array holding data to be sent to ThingSpeak
     float DataArray[3];
+
+    //flag to set upon crash
+    bool crash_flag = false; //default value is false
 
     gps_init();
 
@@ -419,7 +513,7 @@ void main()
     i2c_smbus_write_byte_data(device_file, PWR_MGMT1_ADDR, ~(1 << 6)&power_ret);
 
     //In forever loop
-    while(1){
+    while(crash_flag){
         //Read acceleration in X-axis
         accel_x = (i2c_smbus_read_byte_data(device_file, ACCEL_XOUT_H) << 8) | (i2c_smbus_read_byte_data(device_file, ACCEL_XOUT_L));
         g_x = ((double)accel_x - 2050.0)/16384.0;
@@ -446,6 +540,10 @@ void main()
 
         if(accel_x_change >= crash_threshold_acceleration){            
             printf("Crash acceleration logged.\n");            
+            
+            //set crash flag
+            crash_flag = true;
+            
             gps_location(&data);
             printf("%lf \t%lf \t %lf\n",accel_x_change, data.latitude, data.longitude);
 
@@ -453,11 +551,17 @@ void main()
             DataArray[1] = (float)data.latitude;
             DataArray[2] = (float)data.longitude;
 
+            
             //Sending data to ThingSpeak 
-            //SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));
+            //set a counter here to send data to cloud 3 times
+            // for(int i=0;i<3;i++){
+            //     SendDataToThingSpeak(4, &DataArray, WRITEAPI_KEY, sizeof(WRITEAPI_KEY));    
+            // }  
+
+            SendDataToThingSpeak(3, &DataArray[0], WRITEAPI_KEY, sizeof(WRITEAPI_KEY));          
         }
 
-        sleep(1); //Read values every second
+        sleep(0.5); //Read values every half second
     }
 
 }

@@ -81,6 +81,8 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
     bcopy((char *)ServerTCP->h_addr, 
          (char *)&serv_addr.sin_addr.s_addr,
          ServerTCP->h_length);
+
+	
     serv_addr.sin_port = htons(portno);
     
 	//Step 4: connecting to ThingSpeak server (via HTTP port / port no. 80)
