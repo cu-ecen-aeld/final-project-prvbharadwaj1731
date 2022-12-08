@@ -164,9 +164,6 @@ char SendDataToThingSpeak(int FieldNo, float * FieldArray, char * Key, int SizeO
     write(sockfd,ReqString,strlen(ReqString));
 
     printf("Write to ThingSpeak channel successful\r\n");
-		
-	//close TCP connection
-    //close(sockfd);    
 	
 	//Complete
 	printf("SEND_OK is %d.\r\n", SEND_OK);
